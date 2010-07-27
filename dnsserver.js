@@ -14,49 +14,15 @@ var sliceBits = function(b, off, len) {
     return b & ~(0xff << len);
 };
 
-// pulls bits out of bytes
-// assuming you cannot cross byte boundaries for now
-var sliceBytes  = function(buf, startBits, endBits) {
-
-    var startOffset = startBits % 8;
-    var endOffset = endBits % 8;
-
-    //if the bits are full bytes just use bytes
-    if ((startOffset == 0) && (endOffset % 8 == 0)) {
-        return buf.slice(startBits/8, endBits/8);
-
-    } else {
-        //make sure start and end bytes are inclusive
-        startBytes = Math.floor(startBits/8);
-        endBytes = Math.ceil(endBits/8);
-
-        console.log("start: " + startBytes + " end: " + endBytes + " len:" + buf.length);
-        
-        //my cat is round
-        
-        //slice down to the new size
-        var newBuf = buf.binarySlice(startBytes, endBytes);
-        
-        var str = newBuf.toString('binary', 0, newBuf.length);
-        console.log("buf len: " + newBuf.length);
-        
-        for (i=0;i<str.length;i++) {
-            console.log(str.charCodeAt(i));
-        }
-    }
-};
-
-
 var server = dgram.createSocket(function (msg, rinfo) {
-    //console.log("connection: " + rinfo.address + ":"+ rinfo.port);
-    //console.log("server got: " + sys.inspect(msg));
-    
-    //var msgStr = sliceBits(msg,0,47);
     
     //split up the message into the dns request header info and the query
     var q = processRequest(msg);
-    console.log(sys.inspect(q));
-    console.log(sys.inspect(q.question.qname.toString('binary')));
+
+    buf = createResponse(q);
+    server.send(rinfo.port, rinfo.address, buf, 0, buf.length, function (err, sent) {
+        
+    });
 });
 
 //takes a buffer as a request
@@ -74,7 +40,7 @@ var processRequest = function(req) {
         
     //transaction id
     // 2 bytes
-    query.header.transId = req.slice(0,2);
+    query.header.id = req.slice(0,2);
 
     //slice out a byte for the next section to dice into binary.
     tmpSlice = req.slice(2,3);
@@ -110,6 +76,7 @@ var processRequest = function(req) {
     query.header.ra = sliceBits(tmpByte, 0,1);
 
     //reserved 3 bits
+    // rfc says always 0
     query.header.z = sliceBits(tmpByte, 1,3);
 
     //response code
@@ -144,6 +111,133 @@ var processRequest = function(req) {
     
     return query;
 };
+
+var createResponse = function(query) {
+    var response = {};
+    response.header = {};
+
+    //1 byte
+    response.header.id = query.header.id;//same as query id
+
+    //combined 1 byte
+    response.header.qr = 1; //this is a response
+    response.header.opcode = 0; //standard for now TODO: add other types 4-bit!
+    response.header.aa = 0; //authority... TODO this should be modal
+    response.header.tc = 0; //truncation
+    response.header.rd = 1; //recursion asked for
+
+    //combined 1 byte
+    response.header.ra = 1; //no rescursion here TODO
+    response.header.z = 0; // spec says this MUST always be 0. 3bit
+    response.header.rcode = 0; //TODO add error codes 4 bit.
+
+    //1 byte
+    response.header.qdcount = 1; //1 question
+    //1 byte
+    response.header.ancount = 1; //1 answer TODO support multiple Qs/As
+    //1 byte
+    response.header.nscount = 0;
+    //1 byte
+    response.header.arcount = 0; 
+    
+    response.question = {};
+    response.question.qname = query.question.qname;
+    response.question.qtype = query.question.qtype;
+    response.question.qclass = query.question.qclass;
+
+    response.rr = {}; // TODO should be an array or something 
+    response.rr.qname = query.question.qname;
+    response.rr.qtype = query.question.qtype;
+    response.rr.qclass = query.question.qclass;
+    response.rr.ttl = 1;
+    response.rr.rdlength = 4; //assuming a record ip addy
+    response.rr.rdata = 0x7F000001 // 127.0.0.1 TODO encoding method
+    
+    //TODO compression
+    
+    //TODO output to Buffer
+    var buf = buildResponseBuffer(response);
+    
+    return buf;
+};
+
+var domainToQname = function(domain) {
+    var tokens = domain.split(".");
+    len = domain.length + 2;
+    var qname = new Buffer(len);
+    var offset = 0;
+    for(var i=0; i<tokens.length;i++) {
+        qname[offset]=tokens[i].length;
+        offset++;
+        for(var j=0;j<tokens[i].length;j++) {
+            qname[offset] = tokens[i].toCharCode(j);
+            offset++;
+        }
+    }
+    qname[offset] = 0;
+    
+    return qname;
+};
+
+var buildResponseBuffer = function(response) {
+    //what is len in octets?
+    //headers(12) + qname(qname + 2 + 2) + rr(qname + 2 + 2 + 4 + 2 + 4)
+    //e.g. 30 + 2 * qname;
+    //qnames are Buffers so length is already in octs
+    var qnameLen = response.question.qname.length;
+    var len = 30 + (2 * qnameLen);
+    var buf = new Buffer(len);
+    for(var i=0;i<buf.length;i++) { buf[i]=0;} //zero buffer
+    
+    response.header.id.copy(buf, 0, 0, 2);
+    
+    buf[2] = 0x00 | response.header.qr << 7 | response.header.opcode << 3 | response.header.aa << 2 | response.header.tc << 1 | response.header.rd;
+    
+
+    buf[3] = 0x00 | response.header.ra << 7 | response.header.z << 4 | response.header.rcode;
+
+    numToBuffer(buf, 4, response.header.qdcount, 2);
+
+    numToBuffer(buf, 6, response.header.ancount, 2);
+    numToBuffer(buf, 8, response.header.nscount, 2);
+    numToBuffer(buf, 10, response.header.arcount, 2);
+
+    //end header
+
+    response.question.qname.copy(buf, 12, 0, qnameLen);
+    response.question.qtype.copy(buf, 12+qnameLen, response.question.qtype, 2);
+    response.question.qclass.copy(buf, 12+qnameLen+2, response.question.qclass, 2);
+
+    var rrStart = 12+qnameLen+4;
+
+    response.rr.qname.copy(buf, rrStart, 0, qnameLen);
+    response.rr.qtype.copy(buf, rrStart+qnameLen, response.rr.qtype, 2);
+    response.rr.qclass.copy(buf, rrStart+qnameLen+2, response.rr.qclass, 2);
+    numToBuffer(buf, rrStart+qnameLen+4, response.rr.ttl, 4);
+    numToBuffer(buf, rrStart+qnameLen+8, response.rr.rdlength, 2);
+    numToBuffer(buf, rrStart+qnameLen+10, response.rr.rdata, response.rr.rdlength); // rdlength indicates rdata length
+   
+    return buf;
+};
+
+//take a number and make sure it's written to the buffer as 
+//the correct length of bytes with leading 0 padding where necessary
+// takes buffer, offset, number, length in bytes to insert
+var numToBuffer = function(buf, offset, num, len) {
+    if (typeof num != "number") {
+        throw "Num must be a number";
+    }
+    for (var i=offset;i<offset+len;i++) {
+            var shift = 8*((len - 1) - i - offset);
+            
+            var insert = (num >> shift) & 255;
+            
+            buf[i] = insert;
+    }
+    
+    return buf;
+}
+
 
 server.addListener("error", function (e) {
   throw e;
