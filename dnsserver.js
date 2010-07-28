@@ -134,7 +134,7 @@ var createResponse = function(query) {
     //1 byte
     response.header.qdcount = 1; //1 question
     //1 byte
-    response.header.ancount = 1; //1 answer TODO support multiple Qs/As
+    response.header.ancount = 2; //1 answer TODO support multiple Qs/As
     //1 byte
     response.header.nscount = 0;
     //1 byte
