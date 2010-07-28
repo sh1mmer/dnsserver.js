@@ -261,12 +261,14 @@ var buildResponseBuffer = function(response) {
 //take a number and make sure it's written to the buffer as 
 //the correct length of bytes with leading 0 padding where necessary
 // takes buffer, offset, number, length in bytes to insert
-var numToBuffer = function(buf, offset, num, len) {
+var numToBuffer = function(buf, offset, num, len, debug) {
     if (typeof num != "number") {
         throw "Num must be a number";
     }
+
     for (var i=offset;i<offset+len;i++) {
-            var shift = 8*((len - 1) - i - offset);
+            
+            var shift = 8*((len - 1) - (i - offset));
             
             var insert = (num >> shift) & 255;
             
