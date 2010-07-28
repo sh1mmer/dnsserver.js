@@ -233,21 +233,16 @@ var buildResponseBuffer = function(response) {
         //create a new buffer to hold the request plus the rr
         //len of each response is 14 bytes of stuff + qname len 
         var tmpBuf = getZeroBuf(buf.length + response.rr[i].qname.length + 14);
-        
-        //console.log('buf len: ' + buf.length);
-        //console.log('rrStart: ' + rrStart);
-        //console.log('tmpBuf len: ' + tmpBuf.length);
-        //console.log('qname len: ' + response.rr[i].qname.length);
-        
+                
         buf.copy(tmpBuf, 0, 0, buf.length);
-        //console.log('copy');
-        //console.log(sys.inspect(tmpBuf));
+
         response.rr[i].qname.copy(tmpBuf, rrStart, 0, response.rr[i].qname.length);
         response.rr[i].qtype.copy(tmpBuf, rrStart+response.rr[i].qname.length, response.rr[i].qtype, 2);
         response.rr[i].qclass.copy(tmpBuf, rrStart+response.rr[i].qname.length+2, response.rr[i].qclass, 2);
-        numTotmpBuffer(tmpBuf, rrStart+response.rr[i].qname.length+4, response.rr[i].ttl, 4);
-        numTotmpBuffer(tmpBuf, rrStart+response.rr[i].qname.length+8, response.rr[i].rdlength, 2);
-        numTotmpBuffer(tmpBuf, rrStart+response.rr[i].qname.length+10, response.rr[i].rdata, response.rr[i].rdlength); // rdlength indicates rdata length
+
+        numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+4, response.rr[i].ttl, 4);
+        numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+8, response.rr[i].rdlength, 2);
+        numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+10, response.rr[i].rdata, response.rr[i].rdlength); // rdlength indicates rdata length
         
         rrStart = rrStart + response.rr[i].qname.length + 14;
         
@@ -283,11 +278,6 @@ var numToBuffer = function(buf, offset, num, len, debug) {
 server.addListener("error", function (e) {
   throw e;
 });
-
-
-
-
-
 
 
 server.bind(port, host);
