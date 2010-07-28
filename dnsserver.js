@@ -189,6 +189,12 @@ var domainToQname = function(domain) {
     return qname;
 };
 
+var getZeroBuf = function(len) {
+    buf = new Buffer(len);
+    for(var i=0;i<buf.length;i++) { buf[i]=0;}
+    return buf;
+}
+
 var buildResponseBuffer = function(response) {
     //calculate len in octets
     //NB not calculating rr this is done later
@@ -197,8 +203,7 @@ var buildResponseBuffer = function(response) {
     //qnames are Buffers so length is already in octs
     var qnameLen = response.question.qname.length;
     var len = 16 + qnameLen;
-    var buf = new Buffer(len);
-    for(var i=0;i<buf.length;i++) { buf[i]=0;} //zero buffer
+    var buf = getZeroBuf(len);
     
     response.header.id.copy(buf, 0, 0, 2);
     
@@ -227,8 +232,16 @@ var buildResponseBuffer = function(response) {
         //
         //create a new buffer to hold the request plus the rr
         //len of each response is 14 bytes of stuff + qname len 
-        var tmpBuf = new Buffer(buf.length + response.rr[i].qname.length + 14);
-        buf.copy(tmpBuf, 0, buf.length);
+        var tmpBuf = getZeroBuf(buf.length + response.rr[i].qname.length + 14);
+        
+        //console.log('buf len: ' + buf.length);
+        //console.log('rrStart: ' + rrStart);
+        //console.log('tmpBuf len: ' + tmpBuf.length);
+        //console.log('qname len: ' + response.rr[i].qname.length);
+        
+        buf.copy(tmpBuf, 0, 0, buf.length);
+        //console.log('copy');
+        //console.log(sys.inspect(tmpBuf));
         response.rr[i].qname.copy(tmpBuf, rrStart, 0, response.rr[i].qname.length);
         response.rr[i].qtype.copy(tmpBuf, rrStart+response.rr[i].qname.length, response.rr[i].qtype, 2);
         response.rr[i].qclass.copy(tmpBuf, rrStart+response.rr[i].qname.length+2, response.rr[i].qclass, 2);
