@@ -145,13 +145,23 @@ var createResponse = function(query) {
     response.question.qtype = query.question.qtype;
     response.question.qclass = query.question.qclass;
 
-    response.rr = {}; // TODO should be an array or something 
-    response.rr.qname = query.question.qname;
-    response.rr.qtype = query.question.qtype;
-    response.rr.qclass = query.question.qclass;
-    response.rr.ttl = 1;
-    response.rr.rdlength = 4; //assuming a record ip addy
-    response.rr.rdata = 0x7F000001 // 127.0.0.1 TODO encoding method
+    response.rr = [];
+    
+    response.rr[0] = {}; // TODO should be an array or something 
+    response.rr[0].qname = query.question.qname;
+    response.rr[0].qtype = query.question.qtype;
+    response.rr[0].qclass = query.question.qclass;
+    response.rr[0].ttl = 1;
+    response.rr[0].rdlength = 4; //assuming a record ip addy
+    response.rr[0].rdata = 0x7F000001 // 127.0.0.1 TODO encoding method
+    
+    response.rr[1] = {}; // TODO should be an array or something 
+    response.rr[1].qname = query.question.qname;
+    response.rr[1].qtype = query.question.qtype;
+    response.rr[1].qclass = query.question.qclass;
+    response.rr[1].ttl = 1;
+    response.rr[1].rdlength = 4; //assuming a record ip addy
+    response.rr[1].rdata = 0x7F000001 // 127.0.0.1 TODO encoding method
     
     //TODO compression
     
@@ -180,12 +190,13 @@ var domainToQname = function(domain) {
 };
 
 var buildResponseBuffer = function(response) {
-    //what is len in octets?
-    //headers(12) + qname(qname + 2 + 2) + rr(qname + 2 + 2 + 4 + 2 + 4)
-    //e.g. 30 + 2 * qname;
+    //calculate len in octets
+    //NB not calculating rr this is done later
+    //headers(12) + qname(qname + 2 + 2)
+    //e.g. 16 + 2 * qname;
     //qnames are Buffers so length is already in octs
     var qnameLen = response.question.qname.length;
-    var len = 30 + (2 * qnameLen);
+    var len = 16 + qnameLen;
     var buf = new Buffer(len);
     for(var i=0;i<buf.length;i++) { buf[i]=0;} //zero buffer
     
@@ -209,13 +220,27 @@ var buildResponseBuffer = function(response) {
     response.question.qclass.copy(buf, 12+qnameLen+2, response.question.qclass, 2);
 
     var rrStart = 12+qnameLen+4;
+    
+    for (var i=0;i<response.rr.length;i++) {
+        //TODO figure out if this is actually cheaper than just iterating 
+        //over the rr section up front and counting before creating buf
+        //
+        //create a new buffer to hold the request plus the rr
+        //len of each response is 14 bytes of stuff + qname len 
+        var tmpBuf = new Buffer(buf.length + response.rr[i].qname.length + 14);
+        buf.copy(tmpBuf, 0, buf.length);
+        response.rr[i].qname.copy(tmpBuf, rrStart, 0, response.rr[i].qname.length);
+        response.rr[i].qtype.copy(tmpBuf, rrStart+response.rr[i].qname.length, response.rr[i].qtype, 2);
+        response.rr[i].qclass.copy(tmpBuf, rrStart+response.rr[i].qname.length+2, response.rr[i].qclass, 2);
+        numTotmpBuffer(tmpBuf, rrStart+response.rr[i].qname.length+4, response.rr[i].ttl, 4);
+        numTotmpBuffer(tmpBuf, rrStart+response.rr[i].qname.length+8, response.rr[i].rdlength, 2);
+        numTotmpBuffer(tmpBuf, rrStart+response.rr[i].qname.length+10, response.rr[i].rdata, response.rr[i].rdlength); // rdlength indicates rdata length
+        
+        rrStart = rrStart + response.rr[i].qname.length + 14;
+        
+        buf = tmpBuf;
+    }
 
-    response.rr.qname.copy(buf, rrStart, 0, qnameLen);
-    response.rr.qtype.copy(buf, rrStart+qnameLen, response.rr.qtype, 2);
-    response.rr.qclass.copy(buf, rrStart+qnameLen+2, response.rr.qclass, 2);
-    numToBuffer(buf, rrStart+qnameLen+4, response.rr.ttl, 4);
-    numToBuffer(buf, rrStart+qnameLen+8, response.rr.rdlength, 2);
-    numToBuffer(buf, rrStart+qnameLen+10, response.rr.rdata, response.rr.rdlength); // rdlength indicates rdata length
    
     return buf;
 };
@@ -239,9 +264,16 @@ var numToBuffer = function(buf, offset, num, len) {
 }
 
 
+
 server.addListener("error", function (e) {
   throw e;
 });
+
+
+
+
+
+
 
 server.bind(port, host);
 console.log("Started server on " + host + ":" + port);
