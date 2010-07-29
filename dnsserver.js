@@ -162,10 +162,6 @@ var createResponse = function(query) {
     response.rr[1].ttl = 1;
     response.rr[1].rdlength = 4; //assuming a record ip addy
     response.rr[1].rdata = 0x7F000001 // 127.0.0.1 TODO encoding method
-    
-    //TODO compression
-    
-    //TODO output to Buffer
     var buf = buildResponseBuffer(response);
     
     return buf;
@@ -248,7 +244,8 @@ var buildResponseBuffer = function(response) {
         
         buf = tmpBuf;
     }
-
+    
+    //TODO compression
    
     return buf;
 };
