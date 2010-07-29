@@ -180,7 +180,7 @@ var domainToQname = function(domain) {
         qname[offset]=tokens[i].length;
         offset++;
         for(var j=0;j<tokens[i].length;j++) {
-            qname[offset] = tokens[i].toCharCode(j);
+            qname[offset] = tokens[i].charCodeAt(j);
             offset++;
         }
     }
