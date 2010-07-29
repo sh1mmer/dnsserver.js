@@ -145,23 +145,8 @@ var createResponse = function(query) {
     response.question.qtype = query.question.qtype;
     response.question.qclass = query.question.qclass;
 
-    response.rr = [];
-    
-    response.rr[0] = {}; // TODO should be an array or something 
-    response.rr[0].qname = query.question.qname;
-    response.rr[0].qtype = query.question.qtype;
-    response.rr[0].qclass = query.question.qclass;
-    response.rr[0].ttl = 1;
-    response.rr[0].rdlength = 4; //assuming a record ip addy
-    response.rr[0].rdata = 0x7F000001 // 127.0.0.1 TODO encoding method
-    
-    response.rr[1] = {}; // TODO should be an array or something 
-    response.rr[1].qname = query.question.qname;
-    response.rr[1].qtype = query.question.qtype;
-    response.rr[1].qclass = query.question.qclass;
-    response.rr[1].ttl = 1;
-    response.rr[1].rdlength = 4; //assuming a record ip addy
-    response.rr[1].rdata = 0x7F000001 // 127.0.0.1 TODO encoding method
+    response.rr = findRecords(response.question.qname, 1);
+
     var buf = buildResponseBuffer(response);
     
     return buf;
@@ -189,7 +174,7 @@ var getZeroBuf = function(len) {
     buf = new Buffer(len);
     for(var i=0;i<buf.length;i++) { buf[i]=0;}
     return buf;
-}
+};
 
 var buildResponseBuffer = function(response) {
     //calculate len in octets
@@ -233,8 +218,8 @@ var buildResponseBuffer = function(response) {
         buf.copy(tmpBuf, 0, 0, buf.length);
 
         response.rr[i].qname.copy(tmpBuf, rrStart, 0, response.rr[i].qname.length);
-        response.rr[i].qtype.copy(tmpBuf, rrStart+response.rr[i].qname.length, response.rr[i].qtype, 2);
-        response.rr[i].qclass.copy(tmpBuf, rrStart+response.rr[i].qname.length+2, response.rr[i].qclass, 2);
+        numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length, response.rr[i].qtype, 2);
+        numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+2, response.rr[i].qclass, 2);
 
         numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+4, response.rr[i].ttl, 4);
         numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+8, response.rr[i].rdlength, 2);
@@ -268,13 +253,70 @@ var numToBuffer = function(buf, offset, num, len, debug) {
     }
     
     return buf;
-}
+};
 
+var findRecords = function(qname, type) {
+    
+    var domain = qnameToDomain(qname);
+    var rr = records[domain][type];
+    
+    return rr;
+};
 
+var qnameToDomain = function(qname) {
+    
+    var domain= "";
+    for(var i=0;i<qname.length;i++) {
+        if (qname[i] == 0) {
+            //last char chop trailing .
+            domain = domain.substring(0, domain.length - 1);
+            break;
+        }
+        
+        var tmpBuf = qname.slice(i+1, i+qname[i]+1);
+        domain += tmpBuf.toString('binary', 0, tmpBuf.length);
+        domain += ".";
+        
+        i = i + qname[i];
+    }
+    
+    return domain;
+};
 
 server.addListener("error", function (e) {
   throw e;
 });
+
+
+//
+//TODO create records database
+
+records = {};
+records["tomhughescroucher.com"] = [];
+records["tomhughescroucher.com"][1] = [];
+
+var r = {};
+r.qname = domainToQname("tomhughescroucher.com");
+r.qtype = 1;
+r.qclass = 1;
+r.ttl = 1;
+r.rdlength = 4;
+r.rdata = 0xBC8A0009;
+
+records["tomhughescroucher.com"][1].push(r);
+
+r = {};
+r.qname = domainToQname("tomhughescroucher.com");
+r.qtype = 1;
+r.qclass = 1;
+r.ttl = 1;
+r.rdlength = 4;
+r.rdata = 0x7F000001;
+
+records["tomhughescroucher.com"][1].push(r);
+
+//
+//
 
 
 server.bind(port, host);
