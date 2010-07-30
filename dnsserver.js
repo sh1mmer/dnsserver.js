@@ -113,11 +113,21 @@ var processRequest = function(req) {
 };
 
 var createResponse = function(query) {
+
+    /*
+    * Step 1: find record associated with query
+    */
+    var results = findRecords(query.question.qname, 1);
+
+    /*
+    * Step 2: construct response object
+    */
+    
     var response = {};
     response.header = {};
 
     //1 byte
-    response.header.id = query.header.id;//same as query id
+    response.header.id = query.header.id; //same as query id
 
     //combined 1 byte
     response.header.qr = 1; //this is a response
@@ -127,14 +137,14 @@ var createResponse = function(query) {
     response.header.rd = 1; //recursion asked for
 
     //combined 1 byte
-    response.header.ra = 1; //no rescursion here TODO
+    response.header.ra = 0; //no rescursion here TODO
     response.header.z = 0; // spec says this MUST always be 0. 3bit
     response.header.rcode = 0; //TODO add error codes 4 bit.
 
     //1 byte
     response.header.qdcount = 1; //1 question
     //1 byte
-    response.header.ancount = 2; //1 answer TODO support multiple Qs/As
+    response.header.ancount = results.length; //number of rrs returned from query
     //1 byte
     response.header.nscount = 0;
     //1 byte
@@ -145,10 +155,16 @@ var createResponse = function(query) {
     response.question.qtype = query.question.qtype;
     response.question.qclass = query.question.qclass;
 
-    response.rr = findRecords(response.question.qname, 1);
+    response.rr = results;
 
+    /*
+    * Step 3 render response into output buffer
+    */
     var buf = buildResponseBuffer(response);
     
+    /*
+    * Step 4 return buffer
+    */
     return buf;
 };
 
@@ -314,10 +330,6 @@ r.rdlength = 4;
 r.rdata = 0x7F000001;
 
 records["tomhughescroucher.com"][1].push(r);
-
-//
-//
-
 
 server.bind(port, host);
 console.log("Started server on " + host + ":" + port);
