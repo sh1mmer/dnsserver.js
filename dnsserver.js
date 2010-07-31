@@ -276,8 +276,11 @@ var findRecords = function(qname, qtype, qclass) {
     //assuming we are always going to get internet 
     //request but adding basic qclass support
     //for completeness 
-    if (qclass === undefined) {
+    //TODO replace throws with error responses
+    if (qclass === undefined || qclass === 1) {
         qclass = "in";
+    } else {
+        throw "Only internet class records supported";
     }
     
     switch(qtype) {
@@ -329,7 +332,7 @@ var findRecords = function(qname, qtype, qclass) {
         case 16:
             qtype = "txt"; //text strings
             break;
-        case "*":
+        case 255:
             qtype = "*"; //select all types
             break;
         default:
@@ -341,7 +344,7 @@ var findRecords = function(qname, qtype, qclass) {
     
     //TODO add support for wildcard
     if (qtype === "*") {
-        throw "Wildcard not support"
+        throw "Wildcard not support";
     } else {
         var rr = records[domain][qclass][qtype];
     }
