@@ -271,10 +271,82 @@ var numToBuffer = function(buf, offset, num, len, debug) {
     return buf;
 };
 
-var findRecords = function(qname, type) {
+var findRecords = function(qname, qtype, qclass) {
     
-    var domain = qnameToDomain(qname);
-    var rr = records[domain][type];
+    //assuming we are always going to get internet 
+    //request but adding basic qclass support
+    //for completeness 
+    if (qclass === undefined) {
+        qclass = "in";
+    }
+    
+    switch(qtype) {
+        case 1:
+            qtype = "a"; //a host address
+            break;
+        case 2:
+            qtype = "ns"; //an authoritative name server
+            break;
+        case 3:
+            qtype = "md"; //a mail destination (Obsolete - use MX)
+            break;
+        case 4:
+            qtype = "mf"; //a mail forwarder (Obsolete - use MX)
+            break;
+        case 5:
+            qtype = "cname"; //the canonical name for an alias
+            break;
+        case 6:
+            qtype = "soa"; //marks the start of a zone of authority
+            break;
+        case 7:
+            qtype = "mb"; //a mailbox domain name (EXPERIMENTAL)
+            break;
+        case 8:
+            qtype = "mg"; //a mail group member (EXPERIMENTAL)
+            break;
+        case 9:
+            qtype = "mr"; //a mail rename domain name (EXPERIMENTAL)
+            break;
+        case 10:
+            qtype = "null"; //a null RR (EXPERIMENTAL)
+            break;
+        case 11:
+            qtype = "wks"; //a well known service description
+            break;
+        case 12:
+            qtype = "ptr"; //a domain name pointer
+            break;
+        case 13:
+            qtype = "hinfo"; //host information
+            break;
+        case 14:
+            qtype = "minfo"; //mailbox or mail list information
+            break;
+        case 15:
+            qtype = "mx"; //mail exchange
+            break;
+        case 16:
+            qtype = "txt"; //text strings
+            break;
+        case "*":
+            qtype = "*"; //select all types
+            break;
+        default:
+            throw "No valid type specified";
+            break;
+    }
+
+    var domain = qnameToDomain(qname);        
+    
+    //TODO add support for wildcard
+    if (qtype === "*") {
+        throw "Wildcard not support"
+    } else {
+        var rr = records[domain][qclass][qtype];
+    }
+
+    
     
     return rr;
 };
@@ -308,8 +380,9 @@ server.addListener("error", function (e) {
 //TODO create records database
 
 records = {};
-records["tomhughescroucher.com"] = [];
-records["tomhughescroucher.com"][1] = [];
+records["tomhughescroucher.com"] = {};
+records["tomhughescroucher.com"]["in"] = {};
+records["tomhughescroucher.com"]["in"]["a"] = [];
 
 var r = {};
 r.qname = domainToQname("tomhughescroucher.com");
@@ -319,7 +392,7 @@ r.ttl = 1;
 r.rdlength = 4;
 r.rdata = 0xBC8A0009;
 
-records["tomhughescroucher.com"][1].push(r);
+records["tomhughescroucher.com"]["in"]["a"].push(r);
 
 r = {};
 r.qname = domainToQname("tomhughescroucher.com");
@@ -329,7 +402,7 @@ r.ttl = 1;
 r.rdlength = 4;
 r.rdata = 0x7F000001;
 
-records["tomhughescroucher.com"][1].push(r);
+records["tomhughescroucher.com"]["in"]["a"].push(r);
 
 server.bind(port, host);
 console.log("Started server on " + host + ":" + port);
