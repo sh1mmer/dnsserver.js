@@ -256,7 +256,7 @@ var buildResponseBuffer = function(response) {
 // takes buffer, offset, number, length in bytes to insert
 var numToBuffer = function(buf, offset, num, len, debug) {
     if (typeof num != "number") {
-        throw "Num must be a number";
+        throw new Error("Num must be a number");
     }
 
     for (var i=offset;i<offset+len;i++) {
@@ -280,7 +280,7 @@ var findRecords = function(qname, qtype, qclass) {
     if (qclass === undefined || qclass === 1) {
         qclass = "in";
     } else {
-        throw "Only internet class records supported";
+        throw new Error("Only internet class records supported");
     }
     
     switch(qtype) {
@@ -336,7 +336,7 @@ var findRecords = function(qname, qtype, qclass) {
             qtype = "*"; //select all types
             break;
         default:
-            throw "No valid type specified";
+            throw new Error("No valid type specified");
             break;
     }
 
@@ -344,7 +344,7 @@ var findRecords = function(qname, qtype, qclass) {
     
     //TODO add support for wildcard
     if (qtype === "*") {
-        throw "Wildcard not support";
+        throw new Error("Wildcard not support");
     } else {
         var rr = records[domain][qclass][qtype];
     }
