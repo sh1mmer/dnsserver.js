@@ -1,6 +1,6 @@
 var sys = require('sys'),
     Buffer = require('buffer').Buffer,
-    dgram = require('dgram1');
+    dgram = require('dgram');
 
 host = "localhost";
 port = 9999;
