@@ -2,7 +2,7 @@ var sys = require('sys'),
     Buffer = require('buffer').Buffer,
     dgram = require('dgram');
 
-host = "localhost";
+host = 'localhost';
 port = 9999;
 
 // slices a single byte into bits
@@ -257,8 +257,8 @@ var buildResponseBuffer = function(response) {
 //the correct length of bytes with leading 0 padding where necessary
 // takes buffer, offset, number, length in bytes to insert
 var numToBuffer = function(buf, offset, num, len, debug) {
-    if (typeof num != "number") {
-        throw new Error("Num must be a number");
+    if (typeof num != 'number') {
+        throw new Error('Num must be a number');
     }
 
     for (var i=offset;i<offset+len;i++) {
@@ -280,73 +280,73 @@ var findRecords = function(qname, qtype, qclass) {
     //for completeness 
     //TODO replace throws with error responses
     if (qclass === undefined || qclass === 1) {
-        qclass = "in";
+        qclass = 'in';
     } else {
-        throw new Error("Only internet class records supported");
+        throw new Error('Only internet class records supported');
     }
     
     switch(qtype) {
         case 1:
-            qtype = "a"; //a host address
+            qtype = 'a'; //a host address
             break;
         case 2:
-            qtype = "ns"; //an authoritative name server
+            qtype = 'ns'; //an authoritative name server
             break;
         case 3:
-            qtype = "md"; //a mail destination (Obsolete - use MX)
+            qtype = 'md'; //a mail destination (Obsolete - use MX)
             break;
         case 4:
-            qtype = "mf"; //a mail forwarder (Obsolete - use MX)
+            qtype = 'mf'; //a mail forwarder (Obsolete - use MX)
             break;
         case 5:
-            qtype = "cname"; //the canonical name for an alias
+            qtype = 'cname'; //the canonical name for an alias
             break;
         case 6:
-            qtype = "soa"; //marks the start of a zone of authority
+            qtype = 'soa'; //marks the start of a zone of authority
             break;
         case 7:
-            qtype = "mb"; //a mailbox domain name (EXPERIMENTAL)
+            qtype = 'mb'; //a mailbox domain name (EXPERIMENTAL)
             break;
         case 8:
-            qtype = "mg"; //a mail group member (EXPERIMENTAL)
+            qtype = 'mg'; //a mail group member (EXPERIMENTAL)
             break;
         case 9:
-            qtype = "mr"; //a mail rename domain name (EXPERIMENTAL)
+            qtype = 'mr'; //a mail rename domain name (EXPERIMENTAL)
             break;
         case 10:
-            qtype = "null"; //a null RR (EXPERIMENTAL)
+            qtype = 'null'; //a null RR (EXPERIMENTAL)
             break;
         case 11:
-            qtype = "wks"; //a well known service description
+            qtype = 'wks'; //a well known service description
             break;
         case 12:
-            qtype = "ptr"; //a domain name pointer
+            qtype = 'ptr'; //a domain name pointer
             break;
         case 13:
-            qtype = "hinfo"; //host information
+            qtype = 'hinfo'; //host information
             break;
         case 14:
-            qtype = "minfo"; //mailbox or mail list information
+            qtype = 'minfo'; //mailbox or mail list information
             break;
         case 15:
-            qtype = "mx"; //mail exchange
+            qtype = 'mx'; //mail exchange
             break;
         case 16:
-            qtype = "txt"; //text strings
+            qtype = 'txt'; //text strings
             break;
         case 255:
-            qtype = "*"; //select all types
+            qtype = '*'; //select all types
             break;
         default:
-            throw new Error("No valid type specified");
+            throw new Error('No valid type specified');
             break;
     }
 
     var domain = qnameToDomain(qname);        
     
     //TODO add support for wildcard
-    if (qtype === "*") {
-        throw new Error("Wildcard not support");
+    if (qtype === '*') {
+        throw new Error('Wildcard not support');
     } else {
         var rr = records[domain][qclass][qtype];
     }
@@ -358,7 +358,7 @@ var findRecords = function(qname, qtype, qclass) {
 
 var qnameToDomain = function(qname) {
     
-    var domain= "";
+    var domain= '';
     for(var i=0;i<qname.length;i++) {
         if (qname[i] == 0) {
             //last char chop trailing .
@@ -368,7 +368,7 @@ var qnameToDomain = function(qname) {
         
         var tmpBuf = qname.slice(i+1, i+qname[i]+1);
         domain += tmpBuf.toString('binary', 0, tmpBuf.length);
-        domain += ".";
+        domain += '.';
         
         i = i + qname[i];
     }
@@ -376,7 +376,7 @@ var qnameToDomain = function(qname) {
     return domain;
 };
 
-server.addListener("error", function (e) {
+server.addListener('error', function (e) {
   throw e;
 });
 
@@ -385,29 +385,29 @@ server.addListener("error", function (e) {
 //TODO create records database
 
 records = {};
-records["tomhughescroucher.com"] = {};
-records["tomhughescroucher.com"]["in"] = {};
-records["tomhughescroucher.com"]["in"]["a"] = [];
+records['tomhughescroucher.com'] = {};
+records['tomhughescroucher.com']['in'] = {};
+records['tomhughescroucher.com']['in']['a'] = [];
 
 var r = {};
-r.qname = domainToQname("tomhughescroucher.com");
+r.qname = domainToQname('tomhughescroucher.com');
 r.qtype = 1;
 r.qclass = 1;
 r.ttl = 1;
 r.rdlength = 4;
 r.rdata = 0xBC8A0009;
 
-records["tomhughescroucher.com"]["in"]["a"].push(r);
+records['tomhughescroucher.com']['in']['a'].push(r);
 
 r = {};
-r.qname = domainToQname("tomhughescroucher.com");
+r.qname = domainToQname('tomhughescroucher.com');
 r.qtype = 1;
 r.qclass = 1;
 r.ttl = 1;
 r.rdlength = 4;
 r.rdata = 0x7F000001;
 
-records["tomhughescroucher.com"]["in"]["a"].push(r);
+records['tomhughescroucher.com']['in']['a'].push(r);
 
 server.bind(port, host);
-console.log("Started server on " + host + ":" + port);
+console.log('Started server on ' + host + ':' + port);
