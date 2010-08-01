@@ -14,7 +14,9 @@ var sliceBits = function(b, off, len) {
     return b & ~(0xff << len);
 };
 
-var server = dgram.createSocket(function (msg, rinfo) {
+var server = dgram.createSocket('udp4');
+    
+server.on('message', function (msg, rinfo) {
     
     //split up the message into the dns request header info and the query
     var q = processRequest(msg);
