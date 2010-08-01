@@ -22,7 +22,7 @@ server.on('message', function (msg, rinfo) {
     var q = processRequest(msg);
 
     buf = createResponse(q);
-    server.send(rinfo.port, rinfo.address, buf, 0, buf.length, function (err, sent) {
+    server.send(buf, 0, buf.length, rinfo.port, rinfo.address, function (err, sent) {
         
     });
 });
