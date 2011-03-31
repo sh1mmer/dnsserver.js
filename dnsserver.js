@@ -241,8 +241,8 @@ var buildResponseBuffer = function(response) {
     //end header
 
     response.question.qname.copy(buf, 12, 0, qnameLen);
-    response.question.qtype.copy(buf, 12+qnameLen, response.question.qtype, 2);
-    response.question.qclass.copy(buf, 12+qnameLen+2, response.question.qclass, 2);
+    response.question.qtype.copy(buf, 12+qnameLen);
+    response.question.qclass.copy(buf, 12+qnameLen+2);
 
     var rrStart = 12+qnameLen+4;
     
