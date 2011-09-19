@@ -7,9 +7,11 @@ server.bind(8000, '127.0.0.1');
 
 server.addListener('request', function(req, res) {
   console.log("req = ", req);
+  var question = req.question;
 
-  if (req.question.domain == 'tomhughescroucher.com') {
-    res.addRR(req.question.domain, 1, 1, 3600, '184.106.231.91')
+  if (question.type == 1 && question.class == 1 && question.name == 'tomhughescroucher.com') {
+    // IN A query
+    res.addRR(question.name, 1, 1, 3600, '184.106.231.91');
   } else {
     res.header.rcode = 3; // NXDOMAIN
   }
