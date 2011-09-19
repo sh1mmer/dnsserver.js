@@ -5,7 +5,7 @@ var dnsserver = require('../lib/dnsserver');
 var server = dnsserver.createServer();
 server.bind(8000, '127.0.0.1');
 
-server.addListener('request', function(req, res) {
+server.on('request', function(req, res) {
   console.log("req = ", req);
   var question = req.question;
 
@@ -19,6 +19,6 @@ server.addListener('request', function(req, res) {
   res.send();
 });
 
-server.addListener('error', function(e) {
+server.on('error', function(e) {
   throw e;
 });
