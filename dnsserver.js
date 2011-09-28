@@ -367,7 +367,7 @@ var findRecords = function(qname, qtype, qclass) {
 
     //TODO add support for wildcard
     if (qtype === '*') {
-        throw new Error('Wildcard not support');
+        throw new Error('Wildcard not supported');
     } else {
         var rr = records[domain][qclass][qtype];
     }
