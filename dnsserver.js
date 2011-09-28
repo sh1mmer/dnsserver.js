@@ -36,15 +36,15 @@ var sliceBits = function(b, off, len) {
 };
 
 var server = dgram.createSocket('udp4');
-    
+
 server.on('message', function (msg, rinfo) {
-    
+
     //split up the message into the dns request header info and the query
     var q = processRequest(msg);
 
     buf = createResponse(q);
     server.send(buf, 0, buf.length, rinfo.port, rinfo.address, function (err, sent) {
-        
+
     });
 });
 
@@ -52,7 +52,7 @@ server.on('message', function (msg, rinfo) {
 var processRequest = function(req) {
     //see rfc1035 for more details
     //http://tools.ietf.org/html/rfc1035#section-4.1.1
-    
+
     var query = {};
     query.header = {};
     //TODO write code to break questions up into an array
@@ -60,7 +60,7 @@ var processRequest = function(req) {
 
     var tmpSlice;
     var tmpByte;
-        
+
     //transaction id
     // 2 bytes
     query.header.id = req.slice(0,2);
@@ -70,7 +70,7 @@ var processRequest = function(req) {
     //convert the binary buf into a string and then pull the char code
     //for the byte
     tmpByte = tmpSlice.toString('binary', 0, 1).charCodeAt(0);
-    
+
     //qr
     // 1 bit
     query.header.qr = sliceBits(tmpByte, 0,1);
@@ -93,7 +93,7 @@ var processRequest = function(req) {
     //convert the binary buf into a string and then pull the char code
     //for the byte
     tmpByte = tmpSlice.toString('binary', 0, 1).charCodeAt(0);
-    
+
     //recursion available
     // 1 bit
     query.header.ra = sliceBits(tmpByte, 0,1);
@@ -121,7 +121,7 @@ var processRequest = function(req) {
     //addition resources count
     // 2 bytes
     query.header.arcount = req.slice(10, 12);
-    
+
     //assuming one question
     //qname is the sequence of domain labels
     //qname length is not fixed however it is 4
@@ -131,7 +131,7 @@ var processRequest = function(req) {
     query.question.qtype = req.slice(req.length - 4, req.length - 2);
     //qclass
     query.question.qclass = req.slice(req.length - 2, req.length);
-    
+
     return query;
 };
 
@@ -145,7 +145,7 @@ var createResponse = function(query) {
     /*
     * Step 2: construct response object
     */
-    
+
     var response = {};
     response.header = {};
 
@@ -171,8 +171,8 @@ var createResponse = function(query) {
     //1 byte
     response.header.nscount = 0;
     //1 byte
-    response.header.arcount = 0; 
-    
+    response.header.arcount = 0;
+
     response.question = {};
     response.question.qname = query.question.qname;
     response.question.qtype = query.question.qtype;
@@ -184,7 +184,7 @@ var createResponse = function(query) {
     * Step 3 render response into output buffer
     */
     var buf = buildResponseBuffer(response);
-    
+
     /*
     * Step 4 return buffer
     */
@@ -205,7 +205,7 @@ var domainToQname = function(domain) {
         }
     }
     qname[offset] = 0;
-    
+
     return qname;
 };
 
@@ -224,11 +224,11 @@ var buildResponseBuffer = function(response) {
     var qnameLen = response.question.qname.length;
     var len = 16 + qnameLen;
     var buf = getZeroBuf(len);
-    
+
     response.header.id.copy(buf, 0, 0, 2);
-    
+
     buf[2] = 0x00 | response.header.qr << 7 | response.header.opcode << 3 | response.header.aa << 2 | response.header.tc << 1 | response.header.rd;
-    
+
 
     buf[3] = 0x00 | response.header.ra << 7 | response.header.z << 4 | response.header.rcode;
 
@@ -245,15 +245,15 @@ var buildResponseBuffer = function(response) {
     response.question.qclass.copy(buf, 12+qnameLen+2, 0, 2);
 
     var rrStart = 12+qnameLen+4;
-    
+
     for (var i=0;i<response.rr.length;i++) {
-        //TODO figure out if this is actually cheaper than just iterating 
+        //TODO figure out if this is actually cheaper than just iterating
         //over the rr section up front and counting before creating buf
         //
         //create a new buffer to hold the request plus the rr
-        //len of each response is 14 bytes of stuff + qname len 
+        //len of each response is 14 bytes of stuff + qname len
         var tmpBuf = getZeroBuf(buf.length + response.rr[i].qname.length + 14);
-                
+
         buf.copy(tmpBuf, 0, 0, buf.length);
 
         response.rr[i].qname.copy(tmpBuf, rrStart, 0, response.rr[i].qname.length);
@@ -263,18 +263,18 @@ var buildResponseBuffer = function(response) {
         numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+4, response.rr[i].ttl, 4);
         numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+8, response.rr[i].rdlength, 2);
         numToBuffer(tmpBuf, rrStart+response.rr[i].qname.length+10, response.rr[i].rdata, response.rr[i].rdlength); // rdlength indicates rdata length
-        
+
         rrStart = rrStart + response.rr[i].qname.length + 14;
-        
+
         buf = tmpBuf;
     }
-    
+
     //TODO compression
-   
+
     return buf;
 };
 
-//take a number and make sure it's written to the buffer as 
+//take a number and make sure it's written to the buffer as
 //the correct length of bytes with leading 0 padding where necessary
 // takes buffer, offset, number, length in bytes to insert
 var numToBuffer = function(buf, offset, num, len, debug) {
@@ -283,29 +283,29 @@ var numToBuffer = function(buf, offset, num, len, debug) {
     }
 
     for (var i=offset;i<offset+len;i++) {
-            
+
             var shift = 8*((len - 1) - (i - offset));
-            
+
             var insert = (num >> shift) & 255;
-            
+
             buf[i] = insert;
     }
-    
+
     return buf;
 };
 
 var findRecords = function(qname, qtype, qclass) {
-    
-    //assuming we are always going to get internet 
+
+    //assuming we are always going to get internet
     //request but adding basic qclass support
-    //for completeness 
+    //for completeness
     //TODO replace throws with error responses
     if (qclass === undefined || qclass === 1) {
         qclass = 'in';
     } else {
         throw new Error('Only internet class records supported');
     }
-    
+
     switch(qtype) {
         case 1:
             qtype = 'a'; //a host address
@@ -363,8 +363,8 @@ var findRecords = function(qname, qtype, qclass) {
             break;
     }
 
-    var domain = qnameToDomain(qname);        
-    
+    var domain = qnameToDomain(qname);
+
     //TODO add support for wildcard
     if (qtype === '*') {
         throw new Error('Wildcard not support');
@@ -372,13 +372,13 @@ var findRecords = function(qname, qtype, qclass) {
         var rr = records[domain][qclass][qtype];
     }
 
-    
-    
+
+
     return rr;
 };
 
 var qnameToDomain = function(qname) {
-    
+
     var domain= '';
     for(var i=0;i<qname.length;i++) {
         if (qname[i] == 0) {
@@ -386,14 +386,14 @@ var qnameToDomain = function(qname) {
             domain = domain.substring(0, domain.length - 1);
             break;
         }
-        
+
         var tmpBuf = qname.slice(i+1, i+qname[i]+1);
         domain += tmpBuf.toString('binary', 0, tmpBuf.length);
         domain += '.';
-        
+
         i = i + qname[i];
     }
-    
+
     return domain;
 };
 
