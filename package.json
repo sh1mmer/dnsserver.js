@@ -10,7 +10,7 @@
   },
   "main": "lib/dnsserver.js",
   "engines": {
-    "node": "~>0.4"
+    "node": ">=0.4"
   },
   "dependencies": {},
   "devDependencies": {}
